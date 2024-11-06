@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  </head>
+  <body>
+    <div id="qr-reader" style="width: 300px;"></div>
+    <div id="result" style="margin-top: 20px; display: none;">
+      <p><strong>ID:</strong> <span id="id"></span></p>
+      <p><strong>Name:</strong> <span id="name"></span></p>
+      <button id="submitBtn" onclick="submitData()" style="display: none;">Submit</button>
+    </div>
+
+    <script>
+      let scannedData = null;
+
+      function onScanSuccess(decodedText, decodedResult) {
+        try {
+          const data = JSON.parse(decodedText);
+          if (data.id && data.name) {
+            scannedData = data;
+            document.getElementById("id").textContent = data.id;
+            document.getElementById("name").textContent = data.name;
+            document.getElementById("result").style.display = "block";
+            document.getElementById("submitBtn").style.display = "inline";
+          } else {
+            alert("Invalid QR code data. Missing required fields.");
+            resetScannerUI();
+          }
+        } catch (e) {
+          alert("Invalid QR code format.");
+          resetScannerUI();
+        }
+      }
+
+      function onScanFailure(error) {
+        // Do nothing on failure
+      }
+
+      function resetScannerUI() {
+        // Reset the display, but keep the scanner active
+        scannedData = null;
+        document.getElementById("result").style.display = "none";
+        document.getElementById("submitBtn").style.display = "none";
+      }
+
+      function submitData() {
+        if (!scannedData) return;
+
+        google.script.run.withSuccessHandler(response => {
+          if (response.success) {
+            alert(response.message);
+            resetScannerUI();
+          } else {
+            alert("Error: " + response.message);
+          }
+        }).appendToSheet(scannedData);
+      }
+
+      // Initialize the QR code scanner and keep it active after each scan
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader", { fps: 10, qrbox: 250 });
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+  </body>
+</html>
